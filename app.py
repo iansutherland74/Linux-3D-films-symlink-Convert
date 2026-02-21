@@ -10,9 +10,9 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse
 
-HOST = os.getenv("SYMLINK_EDITOR_HOST", "127.0.0.1")
+HOST = os.getenv("SYMLINK_EDITOR_HOST", "192.168.1.14")
 PORT = int(os.getenv("SYMLINK_EDITOR_PORT", "8080"))
-ROOT = Path(os.getenv("FILMS_ROOT", str(Path.home() / "Videos" / "3D_films"))).expanduser()
+ROOT = Path(os.getenv("FILMS_ROOT", "/mnt/3DFF")).expanduser()
 THREE_D_TYPES = ("hsbs", "fsbs", "htab", "ftab", "mvc")
 
 

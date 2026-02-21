@@ -29,11 +29,11 @@ python3 app.py
 
 Optional environment variables:
 
-- `FILMS_ROOT`: root folder that holds symlinks (default: `~/Videos/3D_films`)
-- `SYMLINK_EDITOR_HOST`: host bind (default: `127.0.0.1`)
+- `FILMS_ROOT`: root folder that holds symlinks (default: `/mnt/3DFF`)
+- `SYMLINK_EDITOR_HOST`: host bind (default: `192.168.1.14`)
 - `SYMLINK_EDITOR_PORT`: port (default: `8080`)
 
-Open `http://127.0.0.1:8080`.
+Open `http://192.168.1.14:8080`.
 
 
 ## Run with Docker
@@ -43,8 +43,9 @@ Open `http://127.0.0.1:8080`.
 ```bash
 docker build -t symlink-editor .
 docker run --rm -p 8080:8080 \
-  -e FILMS_ROOT=/data/3d_films \
-  -v "$PWD/films:/data/3d_films" \
+  -e FILMS_ROOT=/mnt/3DFF \
+  -e SYMLINK_EDITOR_HOST=192.168.1.14 \
+  -v "$PWD/films:/mnt/3DFF" \
   symlink-editor
 ```
 
@@ -54,7 +55,7 @@ docker run --rm -p 8080:8080 \
 docker compose up --build
 ```
 
-This mounts `./films` from your host into the container as `/data/3d_films`, so created symlinks persist on your machine.
+This mounts `./films` from your host into the container as `/mnt/3DFF`, so created symlinks persist on your machine.
 
 ### Docker run helper script
 
@@ -94,11 +95,11 @@ services:
     ports:
       - "8080:8080"
     environment:
-      FILMS_ROOT: /data/3d_films
-      SYMLINK_EDITOR_HOST: 0.0.0.0
+      FILMS_ROOT: /mnt/3DFF
+      SYMLINK_EDITOR_HOST: 192.168.1.14
       SYMLINK_EDITOR_PORT: 8080
     volumes:
-      - /DATA/AppData/symlink-editor/films:/data/3d_films
+      - /DATA/AppData/symlink-editor/films:/mnt/3DFF
     restart: unless-stopped
 ```
 
@@ -113,12 +114,12 @@ If you prefer the one-container form:
 - **Image**: build/push this project image first (for example `ghcr.io/<you>/symlink-editor:latest`) and use that image.
 - **Port mapping**: `8080` (host) → `8080` (container)
 - **Environment**:
-  - `FILMS_ROOT=/data/3d_films`
-  - `SYMLINK_EDITOR_HOST=0.0.0.0`
+  - `FILMS_ROOT=/mnt/3DFF`
+  - `SYMLINK_EDITOR_HOST=192.168.1.14`
   - `SYMLINK_EDITOR_PORT=8080`
 - **Volume mapping**:
   - Host: `/DATA/AppData/symlink-editor/films`
-  - Container: `/data/3d_films`
+  - Container: `/mnt/3DFF`
 
 After deploy, browse to `http://<your-casaos-ip>:8080`.
 

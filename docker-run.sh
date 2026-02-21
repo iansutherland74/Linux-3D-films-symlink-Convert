@@ -13,8 +13,8 @@ docker build -t "$IMAGE_NAME" .
 docker run --rm \
   --name "$CONTAINER_NAME" \
   -p "$HOST_PORT":8080 \
-  -e FILMS_ROOT=/data/3d_films \
-  -e SYMLINK_EDITOR_HOST=0.0.0.0 \
+  -e FILMS_ROOT=/mnt/3DFF \
+  -e SYMLINK_EDITOR_HOST=192.168.1.14 \
   -e SYMLINK_EDITOR_PORT=8080 \
-  -v "$FILMS_DIR":/data/3d_films \
+  -v "$FILMS_DIR":/mnt/3DFF \
   "$IMAGE_NAME"
