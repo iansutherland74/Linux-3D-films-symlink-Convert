@@ -27,7 +27,7 @@ For file browsing, use the **Directory to view** field in the UI (for example `.
 ## Run
 
 ```bash
-python3 app.py
+python3 symlink_editor.py
 ```
 
 Optional environment variables:

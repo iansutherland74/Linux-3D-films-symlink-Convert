@@ -7,10 +7,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     SYMLINK_EDITOR_PORT=8080
 
 WORKDIR /app
-COPY app.py /app/app.py
+COPY symlink_editor.py /app/symlink_editor.py
 
 EXPOSE 8080
 
 VOLUME ["/mnt/3DFF"]
 
-CMD ["python", "/app/app.py"]
+CMD ["python", "/app/symlink_editor.py"]
