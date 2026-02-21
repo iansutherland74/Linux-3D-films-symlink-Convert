@@ -56,6 +56,53 @@ docker compose up --build
 
 This mounts `./films` from your host into the container as `/data/3d_films`, so created symlinks persist on your machine.
 
+
+## Install on CasaOS
+
+CasaOS can run this app as a custom container. CasaOS compose import typically expects an image (not local `build: .`), so publish/use an image tag first.
+
+### Option 1: Import docker-compose (recommended)
+
+1. In CasaOS, open **App Store** → **Custom Install** (or **Install via Compose** depending on CasaOS version).
+2. Build and publish an image first (for example `ghcr.io/<you>/symlink-editor:latest`).
+3. Paste this compose into CasaOS:
+
+```yaml
+services:
+  symlink-editor:
+    image: ghcr.io/<you>/symlink-editor:latest
+    container_name: symlink-editor
+    ports:
+      - "8080:8080"
+    environment:
+      FILMS_ROOT: /data/3d_films
+      SYMLINK_EDITOR_HOST: 0.0.0.0
+      SYMLINK_EDITOR_PORT: 8080
+    volumes:
+      - /DATA/AppData/symlink-editor/films:/data/3d_films
+    restart: unless-stopped
+```
+
+4. Adjust the image tag and host path (`/DATA/AppData/symlink-editor/films`) to your setup.
+5. Install/start the app.
+6. Open it from CasaOS dashboard (or `http://<your-casaos-ip>:8080`).
+
+### Option 2: Manual container form in CasaOS
+
+If you prefer the one-container form:
+
+- **Image**: build/push this project image first (for example `ghcr.io/<you>/symlink-editor:latest`) and use that image.
+- **Port mapping**: `8080` (host) → `8080` (container)
+- **Environment**:
+  - `FILMS_ROOT=/data/3d_films`
+  - `SYMLINK_EDITOR_HOST=0.0.0.0`
+  - `SYMLINK_EDITOR_PORT=8080`
+- **Volume mapping**:
+  - Host: `/DATA/AppData/symlink-editor/films`
+  - Container: `/data/3d_films`
+
+After deploy, browse to `http://<your-casaos-ip>:8080`.
+
 ## Notes
 
 - `movie_name` cannot contain `/` or `\`.
