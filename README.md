@@ -34,7 +34,7 @@ Optional environment variables:
 - `SYMLINK_EDITOR_HOST`: host bind (default: `192.168.1.14`)
 - `SYMLINK_EDITOR_PORT`: port (default: `8080`)
 
-Open `http://192.168.1.14:8080`.
+Open `http://<SYMLINK_EDITOR_HOST>:<SYMLINK_EDITOR_PORT>` (default `http://192.168.1.14:8080`).
 
 
 ## Run with Docker
@@ -46,6 +46,7 @@ docker build -t symlink-editor .
 docker run --rm -p 8080:8080 \
   -e FILMS_ROOT=/mnt/3DFF \
   -e SYMLINK_EDITOR_HOST=192.168.1.14 \
+  -e SYMLINK_EDITOR_PORT=8080 \
   -v "$PWD/films:/mnt/3DFF" \
   symlink-editor
 ```
@@ -57,6 +58,19 @@ docker compose up --build
 ```
 
 This mounts `./films` from your host into the container as `/mnt/3DFF`, so created symlinks persist on your machine.
+
+### Docker Compose with custom values
+
+You can choose both the films directory and bind host when starting compose:
+
+```bash
+FILMS_DIR=/DATA/AppData/symlink-editor/films \
+FILMS_ROOT=/mnt/Media3D \
+SYMLINK_EDITOR_HOST=192.168.1.50 \
+SYMLINK_EDITOR_PORT=8080 \
+HOST_PORT=8080 \
+docker compose up --build
+```
 
 ### Docker run helper script
 
@@ -70,11 +84,14 @@ Optional overrides:
 - `CONTAINER_NAME` (default: `symlink-editor`)
 - `HOST_PORT` (default: `8080`)
 - `FILMS_DIR` (default: `./films`)
+- `FILMS_ROOT` (default: `/mnt/3DFF`)
+- `SYMLINK_EDITOR_HOST` (default: `192.168.1.14`)
+- `SYMLINK_EDITOR_PORT` (default: `8080`)
 
 Example:
 
 ```bash
-HOST_PORT=8090 FILMS_DIR=/DATA/AppData/symlink-editor/films ./docker-run.sh
+HOST_PORT=8090 FILMS_DIR=/DATA/AppData/symlink-editor/films FILMS_ROOT=/mnt/Media3D SYMLINK_EDITOR_HOST=192.168.1.50 ./docker-run.sh
 ```
 
 
