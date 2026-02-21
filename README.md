@@ -22,7 +22,7 @@ Example: `Avatar - 2009.3D.hsbs.mkv`
 
 The extension (`.ext`) is inferred from the target path. If there is no extension, `.mkv` is used.
 
-For file browsing, use the **Directory to view** field in the UI (for example `.`, `Movies`, or `Movies/2024`). The directory must exist inside `FILMS_ROOT`.
+For file browsing, use the **Directory to view** field or the **Quick select directory** dropdown in the UI (for example `.`, `Movies`, or `Movies/2024`). The directory must exist inside `FILMS_ROOT`.
 
 ## Run
 

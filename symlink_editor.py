@@ -69,8 +69,11 @@ HTML = """<!doctype html>
   </table>
 
   <h2>All files in directory</h2>
-  <form id="viewDirForm" style="grid-template-columns: 1fr auto; max-width: 550px;">
+  <form id="viewDirForm" style="grid-template-columns: 1fr 1fr auto; max-width: 900px;">
     <label>Directory to view (inside FILMS_ROOT)<br /><input name="view_dir" placeholder="."></label>
+    <label>Quick select directory<br />
+      <select id="dirSelect"><option value=".">.</option></select>
+    </label>
     <button type="submit">Load files</button>
   </form>
   <p class="help">Current directory: <code id="selectedDir">.</code></p>
@@ -84,6 +87,7 @@ const statusEl = document.getElementById('status');
 const rowsEl = document.getElementById('rows');
 const fileRowsEl = document.getElementById('fileRows');
 const selectedDirEl = document.getElementById('selectedDir');
+const dirSelectEl = document.getElementById('dirSelect');
 let currentDir = '.';
 
 function setStatus(msg, ok=true) {
@@ -99,6 +103,14 @@ async function loadLinks(dir='.') {
   document.getElementById('root').textContent = data.root;
   selectedDirEl.textContent = data.selected_dir;
   currentDir = data.selected_dir;
+  dirSelectEl.innerHTML = '';
+  for (const d of data.dirs || ['.']) {
+    const opt = document.createElement('option');
+    opt.value = d;
+    opt.textContent = d;
+    if (d === currentDir) opt.selected = true;
+    dirSelectEl.appendChild(opt);
+  }
   rowsEl.innerHTML = '';
   fileRowsEl.innerHTML = '';
 
@@ -155,6 +167,13 @@ document.getElementById('viewDirForm').addEventListener('submit', async (e) => {
   await loadLinks(dir);
 });
 
+dirSelectEl.addEventListener('change', async (e) => {
+  const dir = e.target.value || '.';
+  const input = document.querySelector('input[name="view_dir"]');
+  if (input) input.value = dir;
+  await loadLinks(dir);
+});
+
 loadLinks().catch((e) => setStatus(String(e), false));
 </script>
 </body>
@@ -207,7 +226,8 @@ def _target_path(raw_target: str) -> Path:
 
 
 def _safe_view_dir(raw_dir: str) -> Path:
-    candidate = (raw_dir or ".").strip()
+    ROOT.mkdir(parents=True, exist_ok=True)
+    candidate = (raw_dir or ".").strip() or "."
     path = Path(candidate)
     if path.is_absolute():
         raise RequestError("dir must be relative to FILMS_ROOT")
@@ -271,6 +291,15 @@ def list_files(base_dir: Path) -> list[FileRow]:
     return result
 
 
+def list_dirs() -> list[str]:
+    ROOT.mkdir(parents=True, exist_ok=True)
+    dirs = ["."]
+    for p in ROOT.rglob("*"):
+        if p.is_dir():
+            dirs.append(str(p.relative_to(ROOT)))
+    return sorted(set(dirs), key=str.lower)
+
+
 def parse_json(handler: BaseHTTPRequestHandler) -> dict:
     try:
         length = int(handler.headers.get("Content-Length", "0"))
@@ -299,6 +328,7 @@ class App(BaseHTTPRequestHandler):
                         "root": str(ROOT),
                         "selected_dir": selected_dir,
                         "types": list(THREE_D_TYPES),
+                        "dirs": list_dirs(),
                         "links": [asdict(x) for x in list_links()],
                         "files": [asdict(x) for x in list_files(base_dir)],
                     },
