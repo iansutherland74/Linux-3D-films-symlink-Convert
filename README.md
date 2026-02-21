@@ -5,7 +5,7 @@ A small Linux-focused web app to manage symlinks for a 3D films library.
 ## What it does
 
 - Shows all symlinks under a configured root directory.
-- Shows a recursive list of files for a selected directory inside `FILMS_ROOT` (`/mnt/3DFF` by default), including whether each item is a regular file or symlink.
+- Shows a recursive list of files inside `FILMS_ROOT` (`/mnt/3DFF` by default), including whether each item is a regular file or symlink.
 - Creates/replaces symlinks from the browser using 3D format types:
   - `hsbs` (half side-by-side)
   - `fsbs` (full side-by-side)
@@ -22,7 +22,7 @@ Example: `Avatar - 2009.3D.hsbs.mkv`
 
 The extension (`.ext`) is inferred from the target path. If there is no extension, `.mkv` is used.
 
-For file browsing, use the **Directory to view** field or the **Quick select directory** dropdown in the UI (for example `.`, `Movies`, or `Movies/2024`). The directory must exist inside `FILMS_ROOT`.
+File browsing always shows all files recursively under `FILMS_ROOT`.
 
 ## Run
 
