@@ -56,6 +56,25 @@ docker compose up --build
 
 This mounts `./films` from your host into the container as `/data/3d_films`, so created symlinks persist on your machine.
 
+### Docker run helper script
+
+```bash
+./docker-run.sh
+```
+
+Optional overrides:
+
+- `IMAGE_NAME` (default: `symlink-editor`)
+- `CONTAINER_NAME` (default: `symlink-editor`)
+- `HOST_PORT` (default: `8080`)
+- `FILMS_DIR` (default: `./films`)
+
+Example:
+
+```bash
+HOST_PORT=8090 FILMS_DIR=/DATA/AppData/symlink-editor/films ./docker-run.sh
+```
+
 
 ## Install on CasaOS
 
