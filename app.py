@@ -8,7 +8,7 @@ from dataclasses import asdict, dataclass
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, unquote_plus, urlparse
 
 HOST = os.getenv("SYMLINK_EDITOR_HOST", "192.168.1.14")
 PORT = int(os.getenv("SYMLINK_EDITOR_PORT", "8080"))
@@ -68,7 +68,12 @@ HTML = """<!doctype html>
     <tbody id="rows"></tbody>
   </table>
 
-  <h2>All files in FILMS_ROOT</h2>
+  <h2>All files in directory</h2>
+  <form id="viewDirForm" style="grid-template-columns: 1fr auto; max-width: 550px;">
+    <label>Directory to view (inside FILMS_ROOT)<br /><input name="view_dir" placeholder="."></label>
+    <button type="submit">Load files</button>
+  </form>
+  <p class="help">Current directory: <code id="selectedDir">.</code></p>
   <table>
     <thead><tr><th>File path</th><th>Type</th></tr></thead>
     <tbody id="fileRows"></tbody>
@@ -78,16 +83,22 @@ HTML = """<!doctype html>
 const statusEl = document.getElementById('status');
 const rowsEl = document.getElementById('rows');
 const fileRowsEl = document.getElementById('fileRows');
+const selectedDirEl = document.getElementById('selectedDir');
+let currentDir = '.';
 
 function setStatus(msg, ok=true) {
   statusEl.textContent = msg || '';
   statusEl.className = ok ? 'ok' : 'err';
 }
 
-async function loadLinks() {
-  const res = await fetch('/api/links');
+async function loadLinks(dir='.') {
+  const q = new URLSearchParams({dir}).toString();
+  const res = await fetch('/api/links?' + q);
   const data = await res.json();
+  if (!res.ok) return setStatus(data.error || 'Load failed', false);
   document.getElementById('root').textContent = data.root;
+  selectedDirEl.textContent = data.selected_dir;
+  currentDir = data.selected_dir;
   rowsEl.innerHTML = '';
   fileRowsEl.innerHTML = '';
 
@@ -103,7 +114,7 @@ async function loadLinks() {
       const body = await del.json();
       if (!del.ok) return setStatus(body.error || 'Delete failed', false);
       setStatus('Deleted ' + row.link_path);
-      await loadLinks();
+      await loadLinks(currentDir);
     });
     rowsEl.appendChild(tr);
   }
@@ -133,7 +144,15 @@ document.getElementById('createForm').addEventListener('submit', async (e) => {
   if (!res.ok) return setStatus(body.error || 'Create failed', false);
   setStatus('Created symlink: ' + body.link_path + ' → ' + body.target_path);
   e.target.reset();
-  await loadLinks();
+  await loadLinks(currentDir);
+});
+
+
+document.getElementById('viewDirForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  const dir = (fd.get('view_dir') || '.').toString() || '.';
+  await loadLinks(dir);
 });
 
 loadLinks().catch((e) => setStatus(String(e), false));
@@ -187,6 +206,21 @@ def _target_path(raw_target: str) -> Path:
     return (ROOT / target).resolve(strict=False)
 
 
+def _safe_view_dir(raw_dir: str) -> Path:
+    candidate = (raw_dir or ".").strip()
+    path = Path(candidate)
+    if path.is_absolute():
+        raise RequestError("dir must be relative to FILMS_ROOT")
+
+    root = Path(os.path.normpath(str(ROOT.expanduser())))
+    full = Path(os.path.normpath(str(ROOT / path)))
+    if os.path.commonpath([str(root), str(full)]) != str(root):
+        raise RequestError("dir escapes FILMS_ROOT")
+    if not full.exists() or not full.is_dir():
+        raise RequestError("dir does not exist inside FILMS_ROOT")
+    return full
+
+
 def _validate_movie_name(movie_name: str) -> str:
     clean = re.sub(r"\s+", " ", movie_name.strip())
     if not clean:
@@ -225,14 +259,14 @@ def list_links() -> list[LinkRow]:
     return result
 
 
-def list_files() -> list[FileRow]:
+def list_files(base_dir: Path) -> list[FileRow]:
     ROOT.mkdir(parents=True, exist_ok=True)
     result: list[FileRow] = []
-    for p in ROOT.rglob("*"):
+    for p in base_dir.rglob("*"):
         if p.is_dir():
             continue
         item_type = "symlink" if p.is_symlink() else "file"
-        result.append(FileRow(path=str(p.relative_to(ROOT)), type=item_type))
+        result.append(FileRow(path=str(p.relative_to(base_dir)), type=item_type))
     result.sort(key=lambda r: r.path.lower())
     return result
 
@@ -253,15 +287,24 @@ class App(BaseHTTPRequestHandler):
             self._serve_html()
             return
         if parsed.path == "/api/links":
-            _json(
-                self,
-                {
-                    "root": str(ROOT),
-                    "types": list(THREE_D_TYPES),
-                    "links": [asdict(x) for x in list_links()],
-                    "files": [asdict(x) for x in list_files()],
-                },
-            )
+            try:
+                q = parse_qs(parsed.query)
+                raw_dir = q.get("dir", ["."])[0]
+                raw_dir = unquote_plus(raw_dir)
+                base_dir = _safe_view_dir(raw_dir)
+                selected_dir = str(base_dir.relative_to(ROOT)) if base_dir != ROOT else "."
+                _json(
+                    self,
+                    {
+                        "root": str(ROOT),
+                        "selected_dir": selected_dir,
+                        "types": list(THREE_D_TYPES),
+                        "links": [asdict(x) for x in list_links()],
+                        "files": [asdict(x) for x in list_files(base_dir)],
+                    },
+                )
+            except RequestError as exc:
+                _json(self, {"error": str(exc)}, status=400)
             return
         self.send_error(HTTPStatus.NOT_FOUND)
 
