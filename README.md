@@ -5,6 +5,7 @@ A small Linux-focused web app to manage symlinks for a 3D films library.
 ## What it does
 
 - Shows all symlinks under a configured root directory.
+- Shows a recursive list of all files under `FILMS_ROOT` (`/mnt/3DFF` by default), including whether each item is a regular file or symlink.
 - Creates/replaces symlinks from the browser using 3D format types:
   - `hsbs` (half side-by-side)
   - `fsbs` (full side-by-side)

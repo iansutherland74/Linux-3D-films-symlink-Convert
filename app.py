@@ -40,7 +40,7 @@ HTML = """<!doctype html>
 </head>
 <body>
   <h1>3D Films Symlink Editor</h1>
-  <p class="muted">Manage symbolic links inside <code id="root"></code>.</p>
+  <p class="muted">Manage symbolic links and view all files inside <code id="root"></code>.</p>
 
   <form id="createForm">
     <label>Movie name<br /><input required name="movie_name" placeholder="Avatar" /></label>
@@ -62,14 +62,22 @@ HTML = """<!doctype html>
 
   <div id="status"></div>
 
+  <h2>Symlinks</h2>
   <table>
     <thead><tr><th>Link path</th><th>Target</th><th></th></tr></thead>
     <tbody id="rows"></tbody>
   </table>
 
+  <h2>All files in FILMS_ROOT</h2>
+  <table>
+    <thead><tr><th>File path</th><th>Type</th></tr></thead>
+    <tbody id="fileRows"></tbody>
+  </table>
+
 <script>
 const statusEl = document.getElementById('status');
 const rowsEl = document.getElementById('rows');
+const fileRowsEl = document.getElementById('fileRows');
 
 function setStatus(msg, ok=true) {
   statusEl.textContent = msg || '';
@@ -81,6 +89,7 @@ async function loadLinks() {
   const data = await res.json();
   document.getElementById('root').textContent = data.root;
   rowsEl.innerHTML = '';
+  fileRowsEl.innerHTML = '';
 
   for (const row of data.links) {
     const tr = document.createElement('tr');
@@ -97,6 +106,12 @@ async function loadLinks() {
       await loadLinks();
     });
     rowsEl.appendChild(tr);
+  }
+
+  for (const file of data.files) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${file.path}</td><td>${file.type}</td>`;
+    fileRowsEl.appendChild(tr);
   }
 }
 
@@ -132,6 +147,12 @@ loadLinks().catch((e) => setStatus(String(e), false));
 class LinkRow:
     link_path: str
     target_path: str
+
+
+@dataclass
+class FileRow:
+    path: str
+    type: str
 
 
 class RequestError(Exception):
@@ -204,6 +225,18 @@ def list_links() -> list[LinkRow]:
     return result
 
 
+def list_files() -> list[FileRow]:
+    ROOT.mkdir(parents=True, exist_ok=True)
+    result: list[FileRow] = []
+    for p in ROOT.rglob("*"):
+        if p.is_dir():
+            continue
+        item_type = "symlink" if p.is_symlink() else "file"
+        result.append(FileRow(path=str(p.relative_to(ROOT)), type=item_type))
+    result.sort(key=lambda r: r.path.lower())
+    return result
+
+
 def parse_json(handler: BaseHTTPRequestHandler) -> dict:
     try:
         length = int(handler.headers.get("Content-Length", "0"))
@@ -220,7 +253,15 @@ class App(BaseHTTPRequestHandler):
             self._serve_html()
             return
         if parsed.path == "/api/links":
-            _json(self, {"root": str(ROOT), "types": list(THREE_D_TYPES), "links": [asdict(x) for x in list_links()]})
+            _json(
+                self,
+                {
+                    "root": str(ROOT),
+                    "types": list(THREE_D_TYPES),
+                    "links": [asdict(x) for x in list_links()],
+                    "files": [asdict(x) for x in list_files()],
+                },
+            )
             return
         self.send_error(HTTPStatus.NOT_FOUND)
 
